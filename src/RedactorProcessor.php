@@ -79,7 +79,6 @@ final class RedactorProcessor implements ProcessorInterface
      */
     private function processValue(mixed $value, array $rules): mixed
     {
-        // 1️⃣ Если скаляр — пробуем применить правило
         if (is_scalar($value)) {
             foreach ($rules as $rule) {
                 if ($rule instanceof RedactionRuleInterface) {
