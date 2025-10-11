@@ -20,7 +20,7 @@ final class EmailRule extends AbstractStartEndRule implements RedactionRuleInter
         $masked = preg_replace('/^([^@]{3})[^@]*(@.*)$/', '$1****$2', $value);
 
         if (null === $masked || $masked === $value) {
-            return $value;
+            return parent::apply($value, $processor);
         }
 
         return $masked;

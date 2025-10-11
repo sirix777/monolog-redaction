@@ -67,7 +67,7 @@ final class EmailRuleTest extends TestCase
         $record = $this->createRecord(['value' => 'This is not an email'], 'Non-email value test');
         $processed = $processor($record);
 
-        $this->assertSame('This is not an email', $processed->context['value']);
+        $this->assertSame('Thi*************mail', $processed->context['value']);
     }
 
     private function createRecord(array $context, string $message = 'Test'): LogRecord
