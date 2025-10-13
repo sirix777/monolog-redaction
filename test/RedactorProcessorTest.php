@@ -13,6 +13,12 @@ use Sirix\Monolog\Redaction\Rule\OffsetRule;
 use Sirix\Monolog\Redaction\Rule\StartEndRule;
 use stdClass;
 
+enum Method: string
+{
+    case GET = 'GET';
+    case POST = 'POST';
+}
+
 final class RedactorProcessorTest extends TestCase
 {
     public function testProcessesSimpleKey(): void
@@ -146,6 +152,43 @@ final class RedactorProcessorTest extends TestCase
 
         $this->assertSame('mypassword', $processed->context['password']);
         $this->assertSame('abcd', $processed->context['token']);
+    }
+
+    public function testDoesNotModifyEnumOrFail(): void
+    {
+        $processor = new RedactorProcessor([], false);
+
+        $record = $this->createRecord([
+            'method' => Method::POST,
+        ]);
+
+        $processed = $processor($record);
+
+        $this->assertSame(Method::POST, $processed->context['method']);
+    }
+
+    public function testSkipsReadonlyProperty(): void
+    {
+        $obj = new class {
+            public readonly string $name;
+            public string $token = 'abcd1234';
+
+            public function __construct()
+            {
+                $this->name = 'readonly';
+            }
+        };
+
+        $processor = new RedactorProcessor([
+            'token' => new OffsetRule(2),
+        ], false);
+
+        $record = $this->createRecord(['obj' => $obj]);
+
+        $processed = $processor($record);
+
+        $this->assertSame('readonly', $processed->context['obj']->name);
+        $this->assertSame('ab******', $processed->context['obj']->token);
     }
 
     private function createRecord(array $context): LogRecord

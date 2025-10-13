@@ -4,11 +4,13 @@ declare(strict_types=1);
 
 namespace Sirix\Monolog\Redaction;
 
+use Error;
 use InvalidArgumentException;
 use Monolog\LogRecord;
 use Monolog\Processor\ProcessorInterface;
 use Sirix\Monolog\Redaction\Rule\RedactionRuleInterface;
 use Traversable;
+use UnitEnum;
 
 use function array_map;
 use function array_merge;
@@ -18,6 +20,7 @@ use function is_array;
 use function is_object;
 use function is_scalar;
 use function iterator_to_array;
+use function str_contains;
 
 final class RedactorProcessor implements ProcessorInterface
 {
@@ -98,12 +101,24 @@ final class RedactorProcessor implements ProcessorInterface
         }
 
         if (is_object($value)) {
+            if ($value instanceof UnitEnum) {
+                return $value;
+            }
+
             $keys = $value instanceof Traversable
                 ? iterator_to_array($value)
                 : get_object_vars($value);
 
             foreach ($keys as $key => $item) {
-                $value->{$key} = $this->processChild($key, $item, $rules);
+                try {
+                    $value->{$key} = $this->processChild($key, $item, $rules);
+                } catch (Error $e) {
+                    if (str_contains($e->getMessage(), 'Cannot modify readonly property')) {
+                        continue;
+                    }
+
+                    throw $e;
+                }
             }
 
             return $value;
