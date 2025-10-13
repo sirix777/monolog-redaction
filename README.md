@@ -113,6 +113,7 @@ final class MyRule implements RedactionRuleInterface
 - setReplacement(string $char): character used to construct masks (default `*`).
 - setTemplate(string $template): a `sprintf` template applied to the mask string (default `'%s'`). For example, `'[%s]'` wraps mask in brackets.
 - setLengthLimit(?int $limit): if set, truncates the resulting masked value to at most this length.
+- setProcessObjects(bool $processObjects): controls whether objects should be processed (default `true`). When set to `false`, objects are left untouched during redaction.
 
 These options are used by rules that build masks based on hidden length (e.g., StartEndRule, PhoneRule).
 

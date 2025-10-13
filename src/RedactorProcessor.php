@@ -30,6 +30,7 @@ final class RedactorProcessor implements ProcessorInterface
     private string $replacement = '*';
     private string $template = '%s';
     private ?int $lengthLimit = null;
+    private bool $processObjects = true;
 
     /**
      * @param array<string, array<string, mixed>|RedactionRuleInterface> $customRules
@@ -77,6 +78,16 @@ final class RedactorProcessor implements ProcessorInterface
         return $this->lengthLimit;
     }
 
+    public function setProcessObjects(bool $processObjects): void
+    {
+        $this->processObjects = $processObjects;
+    }
+
+    public function isProcessObjects(): bool
+    {
+        return $this->processObjects;
+    }
+
     /**
      * @param array<string, array<string, mixed>|RedactionRuleInterface> $rules
      */
@@ -101,6 +112,10 @@ final class RedactorProcessor implements ProcessorInterface
         }
 
         if (is_object($value)) {
+            if (! $this->processObjects) {
+                return $value;
+            }
+
             if ($value instanceof UnitEnum) {
                 return $value;
             }
