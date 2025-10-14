@@ -4,12 +4,10 @@ declare(strict_types=1);
 
 namespace Sirix\Monolog\Redaction;
 
-use Error;
 use InvalidArgumentException;
 use Monolog\LogRecord;
 use Monolog\Processor\ProcessorInterface;
 use ReflectionClass;
-use ReflectionException;
 use ReflectionProperty;
 use Sirix\Monolog\Redaction\Exception\RedactorReflectionException;
 use Sirix\Monolog\Redaction\Rule\RedactionRuleInterface;
@@ -26,8 +24,6 @@ use function is_object;
 use function is_scalar;
 use function iterator_to_array;
 use function mb_substr;
-use function sprintf;
-use function str_contains;
 
 final class RedactorProcessor implements ProcessorInterface
 {
@@ -170,7 +166,7 @@ final class RedactorProcessor implements ProcessorInterface
                 return;
             }
 
-            $item = $ruleOrRules->apply($item, $this);
+            $item = $ruleOrRules->apply((string) $item, $this);
 
             return;
         }
@@ -193,9 +189,7 @@ final class RedactorProcessor implements ProcessorInterface
      */
     private function processObject(object $object, array $rules): void
     {
-        $class = $object::class;
-
-        $ref = self::$reflectionCache[$class] ??= new ReflectionClass($class);
+        $ref = self::$reflectionCache[$object::class] ??= new ReflectionClass($object::class);
 
         $processedNames = [];
 
@@ -203,31 +197,18 @@ final class RedactorProcessor implements ProcessorInterface
             $name = $prop->getName();
             $processedNames[] = $name;
 
-            try {
-                $currentValue = $prop->getValue($object);
+            $currentValue = $prop->getValue($object);
 
-                if ($prop->isReadOnly()) {
-                    if (is_array($currentValue) || is_object($currentValue)) {
-                        $this->processValue($currentValue, $rules);
-                    }
-
-                    continue;
+            if ($prop->isReadOnly()) {
+                if (is_array($currentValue) || is_object($currentValue)) {
+                    $this->processValue($currentValue, $rules);
                 }
 
-                $this->processChild($name, $currentValue, $rules);
-                $prop->setValue($object, $currentValue);
-            } catch (Error $e) {
-                if (str_contains($e->getMessage(), 'Cannot modify readonly property')) {
-                    continue;
-                }
-
-                throw $e;
-            } catch (ReflectionException $e) {
-                throw RedactorReflectionException::fromReflectionException(
-                    $e,
-                    sprintf('Failed to access property %s on class %s', $name, $object::class)
-                );
+                continue;
             }
+
+            $this->processChild($name, $currentValue, $rules);
+            $prop->setValue($object, $currentValue);
         }
 
         $dynamicProps = get_object_vars($object);
