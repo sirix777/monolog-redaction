@@ -8,6 +8,7 @@ use DateTimeImmutable;
 use Monolog\Level;
 use Monolog\LogRecord;
 use PHPUnit\Framework\TestCase;
+use Sirix\Monolog\Redaction\Exception\RedactorReflectionException;
 use Sirix\Monolog\Redaction\RedactorProcessor;
 use Sirix\Monolog\Redaction\Rule\NullRule;
 use stdClass;
@@ -20,6 +21,9 @@ use function range;
 
 final class NullRuleTest extends TestCase
 {
+    /**
+     * @throws RedactorReflectionException
+     */
     public function testNullRule(): void
     {
         $rule = new NullRule();
@@ -30,6 +34,9 @@ final class NullRuleTest extends TestCase
         $this->assertNull($processed->context['password']);
     }
 
+    /**
+     * @throws RedactorReflectionException
+     */
     public function testNullRuleWithNestedData(): void
     {
         $processor = new RedactorProcessor([

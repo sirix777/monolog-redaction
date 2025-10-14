@@ -8,6 +8,7 @@ use DateTimeImmutable;
 use Monolog\Level;
 use Monolog\LogRecord;
 use PHPUnit\Framework\TestCase;
+use Sirix\Monolog\Redaction\Exception\RedactorReflectionException;
 use Sirix\Monolog\Redaction\RedactorProcessor;
 use Sirix\Monolog\Redaction\Rule\FixedValueRule;
 use Test\Sirix\Monolog\Redaction\NestedArrayConversionTrait;
@@ -16,6 +17,9 @@ final class FixedValueRuleTest extends TestCase
 {
     use NestedArrayConversionTrait;
 
+    /**
+     * @throws RedactorReflectionException
+     */
     public function testFixedValueRule(): void
     {
         $rule = new FixedValueRule('REDACTED');
@@ -26,6 +30,9 @@ final class FixedValueRuleTest extends TestCase
         $this->assertSame('REDACTED', $processed->context['token']);
     }
 
+    /**
+     * @throws RedactorReflectionException
+     */
     public function testCustomReplacementValue(): void
     {
         $rule = new FixedValueRule('CUSTOM_VALUE');

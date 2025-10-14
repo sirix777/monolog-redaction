@@ -8,6 +8,7 @@ use DateTimeImmutable;
 use Monolog\Level;
 use Monolog\LogRecord;
 use PHPUnit\Framework\TestCase;
+use Sirix\Monolog\Redaction\Exception\RedactorReflectionException;
 use Sirix\Monolog\Redaction\RedactorProcessor;
 use Sirix\Monolog\Redaction\Rule\NameRule;
 use Test\Sirix\Monolog\Redaction\NestedArrayConversionTrait;
@@ -16,6 +17,9 @@ final class NameRuleTest extends TestCase
 {
     use NestedArrayConversionTrait;
 
+    /**
+     * @throws RedactorReflectionException
+     */
     public function testNameRedaction(): void
     {
         $rule = new NameRule();
@@ -26,6 +30,9 @@ final class NameRuleTest extends TestCase
         $this->assertSame('Jo***n', $processed->context['name']);
     }
 
+    /**
+     * @throws RedactorReflectionException
+     */
     public function testLongNameRedaction(): void
     {
         $rule = new NameRule();
@@ -36,6 +43,9 @@ final class NameRuleTest extends TestCase
         $this->assertSame('Al***r', $processed->context['name']);
     }
 
+    /**
+     * @throws RedactorReflectionException
+     */
     public function testMultipleNamesRedaction(): void
     {
         $rule = new NameRule();
@@ -46,6 +56,9 @@ final class NameRuleTest extends TestCase
         $this->assertSame('Jo***n Do***e Sm***h', $processed->context['fullname']);
     }
 
+    /**
+     * @throws RedactorReflectionException
+     */
     public function testNameRedactionInNestedStructures(): void
     {
         $rule = new NameRule();
@@ -70,6 +83,9 @@ final class NameRuleTest extends TestCase
         $this->assertSame('Ma***a', $processed->context['user']->profile->name);
     }
 
+    /**
+     * @throws RedactorReflectionException
+     */
     public function testTooShortName(): void
     {
         $rule = new NameRule();

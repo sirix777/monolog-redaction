@@ -8,6 +8,7 @@ use DateTimeImmutable;
 use Monolog\Level;
 use Monolog\LogRecord;
 use PHPUnit\Framework\TestCase;
+use Sirix\Monolog\Redaction\Exception\RedactorReflectionException;
 use Sirix\Monolog\Redaction\RedactorProcessor;
 use Sirix\Monolog\Redaction\Rule\StartEndRule;
 use Test\Sirix\Monolog\Redaction\NestedArrayConversionTrait;
@@ -16,6 +17,9 @@ final class StartEndRuleTest extends TestCase
 {
     use NestedArrayConversionTrait;
 
+    /**
+     * @throws RedactorReflectionException
+     */
     public function testPartialMaskWithStartEndVisible(): void
     {
         $processor = new RedactorProcessor([
@@ -41,6 +45,9 @@ final class StartEndRuleTest extends TestCase
         $this->assertSame('do*************', $processed->context['objecthere']->secret2);
     }
 
+    /**
+     * @throws RedactorReflectionException
+     */
     public function testCustomTemplate(): void
     {
         $rule = new StartEndRule(2, 3);
@@ -53,6 +60,9 @@ final class StartEndRuleTest extends TestCase
         $this->assertSame('my**********(redacted)', $processed->context['secret']);
     }
 
+    /**
+     * @throws RedactorReflectionException
+     */
     public function testZeroVisibleStart(): void
     {
         $rule = new StartEndRule(0, 2);
@@ -63,6 +73,9 @@ final class StartEndRuleTest extends TestCase
         $this->assertSame('*************ue', $processed->context['secret']);
     }
 
+    /**
+     * @throws RedactorReflectionException
+     */
     public function testZeroVisibleEnd(): void
     {
         $rule = new StartEndRule(2, 0);
@@ -73,6 +86,9 @@ final class StartEndRuleTest extends TestCase
         $this->assertSame('my*************', $processed->context['secret']);
     }
 
+    /**
+     * @throws RedactorReflectionException
+     */
     public function testShortValues(): void
     {
         $rule = new StartEndRule(2, 2);

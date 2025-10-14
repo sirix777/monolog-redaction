@@ -8,6 +8,7 @@ use DateTimeImmutable;
 use Monolog\Level;
 use Monolog\LogRecord;
 use PHPUnit\Framework\TestCase;
+use Sirix\Monolog\Redaction\Exception\RedactorReflectionException;
 use Sirix\Monolog\Redaction\RedactorProcessor;
 use Sirix\Monolog\Redaction\Rule\EmailRule;
 use Test\Sirix\Monolog\Redaction\NestedArrayConversionTrait;
@@ -16,6 +17,9 @@ final class EmailRuleTest extends TestCase
 {
     use NestedArrayConversionTrait;
 
+    /**
+     * @throws RedactorReflectionException
+     */
     public function testEmailRedaction(): void
     {
         $rule = new EmailRule();
@@ -26,6 +30,9 @@ final class EmailRuleTest extends TestCase
         $this->assertSame('joh****@example.com', $processed->context['email']);
     }
 
+    /**
+     * @throws RedactorReflectionException
+     */
     public function testShortEmailRedaction(): void
     {
         $rule = new EmailRule();
@@ -36,6 +43,9 @@ final class EmailRuleTest extends TestCase
         $this->assertSame('joe****@example.com', $processed->context['email']);
     }
 
+    /**
+     * @throws RedactorReflectionException
+     */
     public function testEmailRedactionInNestedStructures(): void
     {
         $rule = new EmailRule();
@@ -60,6 +70,9 @@ final class EmailRuleTest extends TestCase
         $this->assertSame('ali****@company.org', $processed->context['user']->contact->email);
     }
 
+    /**
+     * @throws RedactorReflectionException
+     */
     public function testNonEmailValue(): void
     {
         $rule = new EmailRule();

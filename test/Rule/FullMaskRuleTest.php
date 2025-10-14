@@ -8,6 +8,7 @@ use DateTimeImmutable;
 use Monolog\Level;
 use Monolog\LogRecord;
 use PHPUnit\Framework\TestCase;
+use Sirix\Monolog\Redaction\Exception\RedactorReflectionException;
 use Sirix\Monolog\Redaction\RedactorProcessor;
 use Sirix\Monolog\Redaction\Rule\FullMaskRule;
 use stdClass;
@@ -22,6 +23,9 @@ use function strlen;
 
 final class FullMaskRuleTest extends TestCase
 {
+    /**
+     * @throws RedactorReflectionException
+     */
     public function testFullMaskRule(): void
     {
         $rule = new FullMaskRule();
@@ -33,6 +37,9 @@ final class FullMaskRuleTest extends TestCase
         $this->assertSame($expected, $processed->context['secret']);
     }
 
+    /**
+     * @throws RedactorReflectionException
+     */
     public function testCustomReplacement(): void
     {
         $rule = new FullMaskRule();

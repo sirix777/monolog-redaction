@@ -8,6 +8,7 @@ use DateTimeImmutable;
 use Monolog\Level;
 use Monolog\LogRecord;
 use PHPUnit\Framework\TestCase;
+use Sirix\Monolog\Redaction\Exception\RedactorReflectionException;
 use Sirix\Monolog\Redaction\RedactorProcessor;
 use Sirix\Monolog\Redaction\Rule\OffsetRule;
 use Test\Sirix\Monolog\Redaction\NestedArrayConversionTrait;
@@ -16,6 +17,9 @@ final class OffsetRuleTest extends TestCase
 {
     use NestedArrayConversionTrait;
 
+    /**
+     * @throws RedactorReflectionException
+     */
     public function testSimpleOffsetRule(): void
     {
         $rule = new OffsetRule(3);
@@ -27,6 +31,9 @@ final class OffsetRuleTest extends TestCase
         $this->assertSame('alice', $processed->context['username']); // Unaffected field
     }
 
+    /**
+     * @throws RedactorReflectionException
+     */
     public function testOffsetRuleInNestedArray(): void
     {
         $processor = new RedactorProcessor([
@@ -51,6 +58,9 @@ final class OffsetRuleTest extends TestCase
         $this->assertSame('bob', $processed->context['user']->username);
     }
 
+    /**
+     * @throws RedactorReflectionException
+     */
     public function testNegativeOffset(): void
     {
         $rule = new OffsetRule(-2);
