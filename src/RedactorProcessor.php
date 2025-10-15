@@ -8,60 +8,39 @@ use InvalidArgumentException;
 use Monolog\LogRecord;
 use Monolog\Processor\ProcessorInterface;
 use ReflectionClass;
-use ReflectionProperty;
 use Sirix\Monolog\Redaction\Exception\RedactorReflectionException;
+use Sirix\Monolog\Redaction\Rule\Default\DefaultRules;
 use Sirix\Monolog\Redaction\Rule\RedactionRuleInterface;
-use Traversable;
+use stdClass;
 use UnitEnum;
 
+use function array_map;
 use function array_merge;
-use function file_exists;
 use function get_object_vars;
-use function in_array;
 use function is_array;
-use function is_int;
 use function is_object;
 use function is_scalar;
-use function iterator_to_array;
-use function mb_substr;
+use function property_exists;
 
 final class RedactorProcessor implements ProcessorInterface
 {
     /** @var array<string, array<string, mixed>|RedactionRuleInterface> */
     private array $rules = [];
 
-    /** @var array<int, RedactionRuleInterface> */
-    private array $globalRules = [];
-
     private string $replacement = '*';
     private string $template = '%s';
     private ?int $lengthLimit = null;
     private bool $processObjects = true;
 
-    /** @var array<class-string, ReflectionClass<object>> */
-    private static array $reflectionCache = [];
-
     /**
-     * @param array<int|string, array<string, mixed>|RedactionRuleInterface> $customRules
+     * @param array<string, array<string, mixed>|RedactionRuleInterface> $customRules
      */
     public function __construct(array $customRules = [], bool $useDefaultRules = true)
     {
-        $baseRules = $useDefaultRules ? $this->loadDefaultRules() : [];
-        $mergedRules = array_merge($baseRules, $customRules);
-
-        foreach ($mergedRules as $key => $rule) {
-            $rule = $this->validateRule($rule);
-
-            if (is_int($key)) {
-                if ($rule instanceof RedactionRuleInterface) {
-                    $this->globalRules[] = $rule;
-                } else {
-                    throw new InvalidArgumentException('Global rules must be RedactionRuleInterface instances');
-                }
-            } else {
-                $this->rules[$key] = $rule;
-            }
-        }
+        $this->rules = array_map(
+            fn ($rule) => $this->validateRule($rule),
+            array_merge($useDefaultRules ? $this->loadDefaultRules() : [], $customRules)
+        );
     }
 
     /**
@@ -122,19 +101,7 @@ final class RedactorProcessor implements ProcessorInterface
      */
     private function processValue(mixed &$value, array $rules): void
     {
-        if (is_scalar($value)) {
-            foreach ($this->globalRules as $rule) {
-                $value = $this->truncate($rule->apply((string) $value, $this));
-            }
-
-            return;
-        }
-
         if (is_array($value)) {
-            if ([] === $rules) {
-                return;
-            }
-
             foreach ($value as $key => &$item) {
                 $this->processChild($key, $item, $rules);
             }
@@ -144,12 +111,94 @@ final class RedactorProcessor implements ProcessorInterface
         }
 
         if (is_object($value)) {
-            if (! $this->processObjects || $value instanceof UnitEnum) {
+            if (! $this->isProcessObjects() || $value instanceof UnitEnum) {
                 return;
             }
 
-            $this->processObject($value, $rules);
+            $value = $this->createMaskedCopy($value, $rules);
         }
+    }
+
+    /**
+     * @param array<string, array<string, mixed>|RedactionRuleInterface> $rules
+     *
+     * @throws RedactorReflectionException
+     */
+    private function createMaskedCopy(object $object, array $rules): object
+    {
+        $copy = new stdClass();
+        $ref = new ReflectionClass($object);
+
+        foreach ($ref->getProperties() as $prop) {
+            $name = $prop->getName();
+            $value = $prop->getValue($object);
+
+            $copy->{$name} = $this->maskValue($name, $value, $rules);
+        }
+
+        foreach (get_object_vars($object) as $name => $value) {
+            if (! property_exists($copy, $name)) {
+                $copy->{$name} = $this->maskValue($name, $value, $rules);
+            }
+        }
+
+        return $copy;
+    }
+
+    /**
+     * @param array<string, array<string, mixed>|RedactionRuleInterface> $rules
+     *
+     * @throws RedactorReflectionException
+     */
+    private function maskValue(string $key, mixed $value, array $rules): mixed
+    {
+        if (is_scalar($value)) {
+            if ($this->hasRuleFor($key, $rules)) {
+                return $this->applyRule($key, $value, $rules);
+            }
+
+            if ($this->hasRuleFor($key, $this->rules)) {
+                return $this->applyRule($key, $value, $this->rules);
+            }
+
+            return $value;
+        }
+
+        if (is_array($value)) {
+            $subRules = $rules[$key] ?? [];
+            $this->processValue($value, is_array($subRules) ? $subRules : []);
+
+            return $value;
+        }
+
+        if (is_object($value)) {
+            $subRules = $rules[$key] ?? [];
+
+            return $this->createMaskedCopy($value, is_array($subRules) ? $subRules : []);
+        }
+
+        return $value;
+    }
+
+    /**
+     * @param array<string, array<string, mixed>|RedactionRuleInterface> $rules
+     */
+    private function hasRuleFor(string $key, array $rules): bool
+    {
+        return isset($rules[$key]) && $rules[$key] instanceof RedactionRuleInterface;
+    }
+
+    /**
+     * @param array<string, array<string, mixed>|RedactionRuleInterface> $rules
+     */
+    private function applyRule(string $key, mixed $value, array $rules): mixed
+    {
+        $rule = $rules[$key];
+        if ($rule instanceof RedactionRuleInterface && is_scalar($value)) {
+            return $rule->apply((string) $value, $this);
+        }
+
+        return $value;
     }
 
     /**
@@ -183,67 +232,6 @@ final class RedactorProcessor implements ProcessorInterface
     }
 
     /**
-     * @param array<string, array<string, mixed>|RedactionRuleInterface> $rules
-     *
-     * @throws RedactorReflectionException
-     */
-    private function processObject(object $object, array $rules): void
-    {
-        $ref = self::$reflectionCache[$object::class] ??= new ReflectionClass($object::class);
-
-        $processedNames = [];
-
-        foreach ($ref->getProperties(ReflectionProperty::IS_PUBLIC) as $prop) {
-            $name = $prop->getName();
-            $processedNames[] = $name;
-
-            $currentValue = $prop->getValue($object);
-
-            if ($prop->isReadOnly()) {
-                if (is_array($currentValue) || is_object($currentValue)) {
-                    $this->processValue($currentValue, $rules);
-                }
-
-                continue;
-            }
-
-            $this->processChild($name, $currentValue, $rules);
-            $prop->setValue($object, $currentValue);
-        }
-
-        $dynamicProps = get_object_vars($object);
-        foreach ($dynamicProps as $name => $currentValue) {
-            if (in_array($name, $processedNames, true)) {
-                continue;
-            }
-
-            $this->processChild($name, $currentValue, $rules);
-            $object->{$name} = $currentValue;
-        }
-
-        if ($object instanceof Traversable) {
-            $array = iterator_to_array($object);
-            foreach ($array as $key => &$item) {
-                $this->processChild($key, $item, $rules);
-            }
-            unset($item);
-        }
-    }
-
-    private function truncate(?string $value): string
-    {
-        if (null === $value) {
-            return '';
-        }
-
-        if (null !== $this->lengthLimit && $this->lengthLimit > 0) {
-            return mb_substr($value, 0, $this->lengthLimit);
-        }
-
-        return $value;
-    }
-
-    /**
      * @return array<string, array<string, mixed>|RedactionRuleInterface>|RedactionRuleInterface
      */
     private function validateRule(mixed $rule): array|RedactionRuleInterface
@@ -260,14 +248,6 @@ final class RedactorProcessor implements ProcessorInterface
      */
     private function loadDefaultRules(): array
     {
-        $defaultRulesFile = __DIR__ . '/Rule/Default/default_rules.php';
-        if (! file_exists($defaultRulesFile)) {
-            return [];
-        }
-
-        /** @var array<string, RedactionRuleInterface> $rules */
-        $rules = require $defaultRulesFile;
-
-        return $rules;
+        return DefaultRules::getAll();
     }
 }

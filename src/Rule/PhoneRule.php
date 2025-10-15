@@ -8,7 +8,7 @@ use Sirix\Monolog\Redaction\RedactorProcessor;
 
 use function preg_replace;
 
-class PhoneRule extends AbstractStartEndRule implements RedactionRuleInterface
+final class PhoneRule extends AbstractStartEndRule implements RedactionRuleInterface
 {
     public function __construct()
     {

@@ -4,18 +4,17 @@ declare(strict_types=1);
 
 namespace Test\Sirix\Monolog\Redaction\Rule;
 
-use DateTimeImmutable;
-use Monolog\Level;
-use Monolog\LogRecord;
 use PHPUnit\Framework\TestCase;
 use Sirix\Monolog\Redaction\Exception\RedactorReflectionException;
 use Sirix\Monolog\Redaction\RedactorProcessor;
 use Sirix\Monolog\Redaction\Rule\EmailRule;
+use Test\Sirix\Monolog\Redaction\LogRecordTrait;
 use Test\Sirix\Monolog\Redaction\NestedArrayConversionTrait;
 
 final class EmailRuleTest extends TestCase
 {
     use NestedArrayConversionTrait;
+    use LogRecordTrait;
 
     /**
      * @throws RedactorReflectionException
@@ -81,17 +80,5 @@ final class EmailRuleTest extends TestCase
         $processed = $processor($record);
 
         $this->assertSame('Thi*************mail', $processed->context['value']);
-    }
-
-    private function createRecord(array $context, string $message = 'Test'): LogRecord
-    {
-        return new LogRecord(
-            datetime: new DateTimeImmutable(),
-            channel: 'test',
-            level: Level::Info,
-            message: $message,
-            context: $this->convertNested($context),
-            extra: []
-        );
     }
 }

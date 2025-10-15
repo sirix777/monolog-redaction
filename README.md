@@ -117,6 +117,14 @@ final class MyRule implements RedactionRuleInterface
 
 These options are used by rules that build masks based on hidden length (e.g., StartEndRule, PhoneRule).
 
+## Error Handling
+
+Since v1.1.0, the processor provides improved error handling through a dedicated exception class:
+
+- `RedactorReflectionException`: Thrown when reflection errors occur during object processing, providing more context about what caused the issue.
+
+This helps with debugging issues related to processing complex object structures.
+
 ## Testing & QA
 
 This repository includes a PHPUnit test suite and tooling configs.

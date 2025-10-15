@@ -4,18 +4,17 @@ declare(strict_types=1);
 
 namespace Test\Sirix\Monolog\Redaction\Rule;
 
-use DateTimeImmutable;
-use Monolog\Level;
-use Monolog\LogRecord;
 use PHPUnit\Framework\TestCase;
 use Sirix\Monolog\Redaction\Exception\RedactorReflectionException;
 use Sirix\Monolog\Redaction\RedactorProcessor;
 use Sirix\Monolog\Redaction\Rule\StartEndRule;
+use Test\Sirix\Monolog\Redaction\LogRecordTrait;
 use Test\Sirix\Monolog\Redaction\NestedArrayConversionTrait;
 
 final class StartEndRuleTest extends TestCase
 {
     use NestedArrayConversionTrait;
+    use LogRecordTrait;
 
     /**
      * @throws RedactorReflectionException
@@ -107,17 +106,5 @@ final class StartEndRuleTest extends TestCase
 
             $this->assertSame($case['expected'], $processed->context['short'], "Failed on case #{$i}");
         }
-    }
-
-    private function createRecord(array $context, string $message = 'Test'): LogRecord
-    {
-        return new LogRecord(
-            datetime: new DateTimeImmutable(),
-            channel: 'test',
-            level: Level::Info,
-            message: $message,
-            context: $this->convertNested($context),
-            extra: []
-        );
     }
 }

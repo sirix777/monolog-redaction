@@ -4,23 +4,18 @@ declare(strict_types=1);
 
 namespace Test\Sirix\Monolog\Redaction\Rule;
 
-use DateTimeImmutable;
-use Monolog\Level;
-use Monolog\LogRecord;
 use PHPUnit\Framework\TestCase;
 use Sirix\Monolog\Redaction\Exception\RedactorReflectionException;
 use Sirix\Monolog\Redaction\RedactorProcessor;
 use Sirix\Monolog\Redaction\Rule\NullRule;
-use stdClass;
-
-use function array_keys;
-use function array_map;
-use function count;
-use function is_array;
-use function range;
+use Test\Sirix\Monolog\Redaction\LogRecordTrait;
+use Test\Sirix\Monolog\Redaction\NestedArrayConversionTrait;
 
 final class NullRuleTest extends TestCase
 {
+    use NestedArrayConversionTrait;
+    use LogRecordTrait;
+
     /**
      * @throws RedactorReflectionException
      */
@@ -59,45 +54,5 @@ final class NullRuleTest extends TestCase
         $this->assertNull($processed->context['credentials']->apiKey);
         $this->assertNull($processed->context['credentials']->username);
         $this->assertSame('example.com', $processed->context['credentials']->domain);
-    }
-
-    private function createRecord(array $context, string $message = 'Test'): LogRecord
-    {
-        return new LogRecord(
-            datetime: new DateTimeImmutable(),
-            channel: 'test',
-            level: Level::Info,
-            message: $message,
-            context: $this->convertNested($context),
-            extra: []
-        );
-    }
-
-    private function convertNested(array $data): array
-    {
-        foreach ($data as &$value) {
-            if (is_array($value)) {
-                if ($this->isAssoc($value)) {
-                    $obj = new stdClass();
-                    foreach ($value as $k => $v) {
-                        $obj->{$k} = is_array($v) ? $this->convertNested($v) : $v;
-                    }
-                    $value = $obj;
-                } else {
-                    $value = array_map(fn ($v) => is_array($v) ? $this->convertNested($v) : $v, $value);
-                }
-            }
-        }
-
-        return $data;
-    }
-
-    private function isAssoc(array $arr): bool
-    {
-        if ([] === $arr) {
-            return false;
-        }
-
-        return array_keys($arr) !== range(0, count($arr) - 1);
     }
 }

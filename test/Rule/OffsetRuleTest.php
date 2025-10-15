@@ -4,18 +4,17 @@ declare(strict_types=1);
 
 namespace Test\Sirix\Monolog\Redaction\Rule;
 
-use DateTimeImmutable;
-use Monolog\Level;
-use Monolog\LogRecord;
 use PHPUnit\Framework\TestCase;
 use Sirix\Monolog\Redaction\Exception\RedactorReflectionException;
 use Sirix\Monolog\Redaction\RedactorProcessor;
 use Sirix\Monolog\Redaction\Rule\OffsetRule;
+use Test\Sirix\Monolog\Redaction\LogRecordTrait;
 use Test\Sirix\Monolog\Redaction\NestedArrayConversionTrait;
 
 final class OffsetRuleTest extends TestCase
 {
     use NestedArrayConversionTrait;
+    use LogRecordTrait;
 
     /**
      * @throws RedactorReflectionException
@@ -69,17 +68,5 @@ final class OffsetRuleTest extends TestCase
         $processed = $processor($record);
 
         $this->assertSame('*******23', $processed->context['password']);
-    }
-
-    private function createRecord(array $context, string $message = 'Test'): LogRecord
-    {
-        return new LogRecord(
-            datetime: new DateTimeImmutable(),
-            channel: 'test',
-            level: Level::Info,
-            message: $message,
-            context: $this->convertNested($context),
-            extra: []
-        );
     }
 }

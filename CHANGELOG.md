@@ -6,11 +6,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
-## [1.1.1] - 14/10/2025
+## [1.2.0] - 15/10/2025
+
+### Changed
+- Refactored default rules from file-based approach (`default_rules.php`) to class-based implementation (`DefaultRules`) for better organization and type safety
+- Updated rule implementations for improved performance and maintainability
+- Enhanced test coverage across all rule types
 
 ### Fixed
-- Fixed an issue in RedactorProcessor where reflection errors could cause processing to fail silently
-- Fixed TypeError when integer values were passed to FixedValueRule::apply() method by ensuring proper type casting
+- Fixed issues in various rule implementations to ensure consistent behavior
 
 
 ## [1.1.0] - 14/10/2025

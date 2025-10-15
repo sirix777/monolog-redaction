@@ -13,8 +13,10 @@ use function str_repeat;
 use function strlen;
 use function substr;
 
-class AbstractStartEndRule
+abstract class AbstractStartEndRule
 {
+    private const DEFAULT_TEMPLATE = '%s';
+
     public function __construct(private readonly int $visibleStart, private readonly int $visibleEnd) {}
 
     public function apply(string $value, RedactorProcessor $processor): string
@@ -37,10 +39,10 @@ class AbstractStartEndRule
 
         $result = substr($value, 0, $visibleStart);
 
-        $useVisibleEnd = '%s' === $processor->getTemplate() && $visibleEnd > 0;
+        $isDefaultTemplate = self::DEFAULT_TEMPLATE === $processor->getTemplate();
         $result .= $placeholder;
 
-        if ($useVisibleEnd) {
+        if ($isDefaultTemplate && $visibleEnd > 0) {
             $result .= substr($value, -$visibleEnd);
         }
 
