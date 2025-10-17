@@ -6,6 +6,32 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [1.3.0] - 17/10/2025
+
+### Added
+- Added `ObjectViewModeEnum` with three modes to control how objects are traversed:
+  - `Copy`: convert objects to stdClass including non-public properties (default, backward compatible)
+  - `PublicArray`: build array from public properties only using `get_object_vars` (fast path, no reflection)
+  - `Skip`: leave objects as-is without unwrapping
+- Added `setObjectViewMode(ObjectViewModeEnum $mode)` and `getObjectViewMode()` methods
+- Added traversal limit controls for performance and safety:
+  - `setMaxDepth(?int $depth)`: limit recursion depth (default: null = no limit)
+  - `setMaxItemsPerContainer(?int $count)`: limit elements per array/container (default: null = no limit)
+  - `setMaxTotalNodes(?int $count)`: global cap on visited/processed nodes (default: null = no limit)
+- Added `setOnLimitExceededCallback(?callable $cb)` for telemetry on limit/cycle events
+- Added `setOverflowPlaceholder(mixed $value)` to configure placeholder for skipped content when limits are hit (default: null = keep original)
+- Added cycle detection for objects using `SplObjectStorage` to prevent infinite loops
+- Added comprehensive test coverage in `RedactorProcessorLimitsTest` and `RedactorProcessorObjectViewModeTest`
+
+### Changed
+- Enhanced `setProcessObjects()` documentation to clarify performance benefits when disabling object processing
+- Refactored internal processing logic to support new traversal modes and limits while maintaining full backward compatibility
+- All traversal limits are fully opt-in; with defaults (all null), processor behaves exactly as before
+
+### Fixed
+- Improved handling of deeply nested structures and large objects with configurable limits
+
+
 ## [1.2.0] - 15/10/2025
 
 ### Changed

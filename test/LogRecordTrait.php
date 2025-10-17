@@ -12,14 +12,14 @@ trait LogRecordTrait
 {
     use NestedArrayConversionTrait;
 
-    private function createRecord(array $context, string $message = 'Test'): LogRecord
+    private function createRecord(array $context, string $message = 'Test', bool $convertNested = true): LogRecord
     {
         return new LogRecord(
             datetime: new DateTimeImmutable(),
             channel: 'test',
             level: Level::Info,
             message: $message,
-            context: $this->convertNested($context),
+            context: $convertNested ? $this->convertNested($context) : $context,
             extra: []
         );
     }

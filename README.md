@@ -113,9 +113,39 @@ final class MyRule implements RedactionRuleInterface
 - setReplacement(string $char): character used to construct masks (default `*`).
 - setTemplate(string $template): a `sprintf` template applied to the mask string (default `'%s'`). For example, `'[%s]'` wraps mask in brackets.
 - setLengthLimit(?int $limit): if set, truncates the resulting masked value to at most this length.
-- setProcessObjects(bool $processObjects): controls whether objects should be processed (default `true`). When set to `false`, objects are left untouched during redaction.
+- setProcessObjects(bool $processObjects): controls whether objects should be processed (default `true`). When set to `false`, objects are left untouched during redaction. Disabling can yield maximum performance on heavy ORM entities/proxies where reflection or deep traversal is expensive.
+- setObjectViewMode(ObjectViewModeEnum $mode): controls how objects are traversed/represented (default `Copy`).
+  - Copy: convert objects to stdClass and include non‑public properties when needed (backward compatible default).
+  - PublicArray: build an array from public properties only using `get_object_vars`, then process that array (fast path; no reflection).
+  - Skip: do not unwrap objects; leave them as is (compatible with `setProcessObjects(false)`).
+- setMaxDepth(?int $depth): limit recursion depth while traversing arrays/objects (default `null` = no limit).
+- setMaxItemsPerContainer(?int $count): process at most this many elements per array container (default `null` = no limit). Remaining items stay untouched.
+- setMaxTotalNodes(?int $count): global cap on visited/processed nodes across the whole structure (default `null` = no limit).
+- setOnLimitExceededCallback(?callable $cb): telemetry callback invoked on any limit or cycle event. Signature: `function (array $info): void`.
+- setOverflowPlaceholder(mixed $value): placeholder value used when a limit is hit (default `null` = keep original value to preserve backward compatibility).
 
-These options are used by rules that build masks based on hidden length (e.g., StartEndRule, PhoneRule).
+These options are used by rules that build masks based on hidden length (e.g., StartEndRule, PhoneRule). The traversal limits are fully opt‑in; with defaults (all `null`), the processor behaves exactly as before.
+
+Example: enabling traversal limits and telemetry
+
+```php
+$processor = new RedactorProcessor();
+
+$processor->setMaxDepth(5);
+$processor->setMaxItemsPerContainer(100);
+$processor->setMaxTotalNodes(10_000);
+$processor->setOverflowPlaceholder('…'); // replace skipped parts with an ellipsis
+$processor->setOnLimitExceededCallback(function (array $info): void {
+    // Example fields: type (maxDepth|maxItemsPerContainer|maxTotalNodes|cycle),
+    // depth, nodesVisited, key/kind/class (when applicable)
+    // You can forward this to metrics/logs.
+});
+```
+
+Notes:
+- Arrays: when `maxItemsPerContainer` is reached, iteration stops for that container; remaining items are left as‑is (or replaced with `overflowPlaceholder` only for the current item when applicable).
+- Objects: cycles are detected via `SplObjectStorage`; on repeat, the callback is fired and the value is left as‑is or replaced by `overflowPlaceholder` if configured.
+- Node counting: `nodesVisited` increments per array element and per object property processed; `maxTotalNodes` stops further processing and optionally applies the placeholder to the current node.
 
 ## Error Handling
 

@@ -4,11 +4,7 @@ declare(strict_types=1);
 
 namespace Test\Sirix\Monolog\Redaction;
 
-use DateTimeImmutable;
-use Monolog\Level;
-use Monolog\LogRecord;
 use PHPUnit\Framework\TestCase;
-use Sirix\Monolog\Redaction\Exception\RedactorReflectionException;
 use Sirix\Monolog\Redaction\RedactorProcessor;
 use Sirix\Monolog\Redaction\Rule\OffsetRule;
 use Sirix\Monolog\Redaction\Rule\StartEndRule;
@@ -22,9 +18,8 @@ enum Method: string
 
 final class RedactorProcessorTest extends TestCase
 {
-    /**
-     * @throws RedactorReflectionException
-     */
+    use LogRecordTrait;
+
     public function testProcessesSimpleKey(): void
     {
         $processor = new RedactorProcessor([
@@ -32,14 +27,17 @@ final class RedactorProcessorTest extends TestCase
             'token' => new OffsetRule(4),
         ], false);
 
-        $record = $this->createRecord([
-            'username' => 'alice',
-            'password' => 'secret123',
-            'credentials' => [
-                'password' => 'supersecret',
-                'token' => 'abcd1234',
+        $record = $this->createRecord(
+            [
+                'username' => 'alice',
+                'password' => 'secret123',
+                'credentials' => [
+                    'password' => 'supersecret',
+                    'token' => 'abcd1234',
+                ],
             ],
-        ]);
+            convertNested: false
+        );
 
         $processed = $processor($record);
 
@@ -49,9 +47,6 @@ final class RedactorProcessorTest extends TestCase
         $this->assertSame('abcd****', $processed->context['credentials']['token']);
     }
 
-    /**
-     * @throws RedactorReflectionException
-     */
     public function testProcessesNestedArray(): void
     {
         $processor = new RedactorProcessor([
@@ -69,7 +64,7 @@ final class RedactorProcessorTest extends TestCase
             ],
         ];
 
-        $record = $this->createRecord($userArray);
+        $record = $this->createRecord($userArray, convertNested: false);
 
         $processed = $processor($record);
 
@@ -79,9 +74,6 @@ final class RedactorProcessorTest extends TestCase
         $this->assertSame('secret123', $userArray['user']['password']);
     }
 
-    /**
-     * @throws RedactorReflectionException
-     */
     public function testProcessesNestedArrayWithTopLevelRules(): void
     {
         $processor = new RedactorProcessor([
@@ -89,13 +81,16 @@ final class RedactorProcessorTest extends TestCase
             'token' => new OffsetRule(4),
         ], false);
 
-        $record = $this->createRecord([
-            'user' => [
-                'username' => 'bob',
-                'password' => 'secret123',
-                'token' => 'abcd1234',
+        $record = $this->createRecord(
+            [
+                'user' => [
+                    'username' => 'bob',
+                    'password' => 'secret123',
+                    'token' => 'abcd1234',
+                ],
             ],
-        ]);
+            convertNested: false
+        );
 
         $processed = $processor($record);
 
@@ -104,9 +99,6 @@ final class RedactorProcessorTest extends TestCase
         $this->assertSame('bob', $processed->context['user']['username']);
     }
 
-    /**
-     * @throws RedactorReflectionException
-     */
     public function testProcessesObjectProperties(): void
     {
         $user = new stdClass();
@@ -117,7 +109,7 @@ final class RedactorProcessorTest extends TestCase
             'password' => new OffsetRule(2),
         ], false);
 
-        $record = $this->createRecord(['user' => $user]);
+        $record = $this->createRecord(['user' => $user], convertNested: false);
 
         $processed = $processor($record);
 
@@ -126,18 +118,18 @@ final class RedactorProcessorTest extends TestCase
         $this->assertSame('carol', $processed->context['user']->username);
     }
 
-    /**
-     * @throws RedactorReflectionException
-     */
     public function testProcessesPartialMaskWithStartEndRule(): void
     {
         $processor = new RedactorProcessor([
             'secret' => new StartEndRule(2, 3),
         ], false);
 
-        $record = $this->createRecord([
-            'secret' => 'my_secret_value',
-        ]);
+        $record = $this->createRecord(
+            [
+                'secret' => 'my_secret_value',
+            ],
+            convertNested: false
+        );
 
         $processor->setTemplate('%s(redacted)');
         $processed = $processor($record);
@@ -158,24 +150,24 @@ final class RedactorProcessorTest extends TestCase
             ],
         ], false);
 
-        $record = $this->createRecord(['nested' => $nested]);
+        $record = $this->createRecord(['nested' => $nested], convertNested: false);
         $processed = $processor($record);
 
         $this->assertSame('ab****', $processed->context['nested']->field1);
         $this->assertSame('123***', $processed->context['nested']->field2);
     }
 
-    /**
-     * @throws RedactorReflectionException
-     */
     public function testAllowsDisablingDefaultRules(): void
     {
         $processor = new RedactorProcessor([], false);
 
-        $record = $this->createRecord([
-            'password' => 'mypassword',
-            'token' => 'abcd',
-        ]);
+        $record = $this->createRecord(
+            [
+                'password' => 'mypassword',
+                'token' => 'abcd',
+            ],
+            convertNested: false
+        );
 
         $processed = $processor($record);
 
@@ -183,25 +175,22 @@ final class RedactorProcessorTest extends TestCase
         $this->assertSame('abcd', $processed->context['token']);
     }
 
-    /**
-     * @throws RedactorReflectionException
-     */
     public function testDoesNotModifyEnumOrFail(): void
     {
         $processor = new RedactorProcessor([], false);
 
-        $record = $this->createRecord([
-            'method' => Method::POST,
-        ]);
+        $record = $this->createRecord(
+            [
+                'method' => Method::POST,
+            ],
+            convertNested: false
+        );
 
         $processed = $processor($record);
 
         $this->assertSame(Method::POST, $processed->context['method']);
     }
 
-    /**
-     * @throws RedactorReflectionException
-     */
     public function testSkipsReadonlyProperty(): void
     {
         $obj = new class {
@@ -218,7 +207,7 @@ final class RedactorProcessorTest extends TestCase
             'token' => new OffsetRule(2),
         ], false);
 
-        $record = $this->createRecord(['obj' => $obj]);
+        $record = $this->createRecord(['obj' => $obj], convertNested: false);
 
         $processed = $processor($record);
 
@@ -226,9 +215,6 @@ final class RedactorProcessorTest extends TestCase
         $this->assertSame('ab******', $processed->context['obj']->token);
     }
 
-    /**
-     * @throws RedactorReflectionException
-     */
     public function testDisablesObjectProcessing(): void
     {
         $user = new stdClass();
@@ -241,7 +227,7 @@ final class RedactorProcessorTest extends TestCase
 
         $processor->setProcessObjects(false);
 
-        $record = $this->createRecord(['user' => $user]);
+        $record = $this->createRecord(['user' => $user], convertNested: false);
         $processed = $processor($record);
 
         $this->assertInstanceOf(stdClass::class, $processed->context['user']);
@@ -249,9 +235,6 @@ final class RedactorProcessorTest extends TestCase
         $this->assertSame('dave', $processed->context['user']->username);
     }
 
-    /**
-     * @throws RedactorReflectionException
-     */
     public function testEnablesObjectProcessing(): void
     {
         $user = new stdClass();
@@ -264,7 +247,7 @@ final class RedactorProcessorTest extends TestCase
 
         $processor->setProcessObjects(true);
 
-        $record = $this->createRecord(['user' => $user]);
+        $record = $this->createRecord(['user' => $user], convertNested: false);
         $processed = $processor($record);
 
         $this->assertInstanceOf(stdClass::class, $processed->context['user']);
@@ -273,9 +256,6 @@ final class RedactorProcessorTest extends TestCase
         $this->assertSame('topsecret', $user->password);
     }
 
-    /**
-     * @throws RedactorReflectionException
-     */
     public function testDeeplyNestedObjectCloningAndImmutability(): void
     {
         $profile = new class {
@@ -321,7 +301,7 @@ final class RedactorProcessorTest extends TestCase
             ],
         ], false);
 
-        $record = $this->createRecord(['data' => $data]);
+        $record = $this->createRecord(context: ['data' => $data], convertNested: false);
 
         $processed = $processor($record);
 
@@ -343,15 +323,81 @@ final class RedactorProcessorTest extends TestCase
         $this->assertNotSame($data->user->profile, $processedProfile);
     }
 
-    private function createRecord(array $context): LogRecord
+    public function testProcessObjectAsArrayDoesNotDoubleProcess(): void
     {
-        return new LogRecord(
-            datetime: new DateTimeImmutable(),
-            channel: 'test',
-            level: Level::Info,
-            message: 'Test message',
-            context: $context,
-            extra: []
-        );
+        $processor = new RedactorProcessor([
+            'password' => new OffsetRule(2),
+        ], false);
+
+        $user = new stdClass();
+        $user->username = 'alice';
+        $user->password = 'secret123';
+
+        $record = $this->createRecord(['user' => $user], convertNested: false);
+
+        $processed = $processor($record);
+
+        $this->assertSame('se*******', $processed->context['user']->password);
+        $this->assertSame('alice', $processed->context['user']->username);
+    }
+
+    public function testNestedArrayInsideObjectProcessedOnce(): void
+    {
+        $processor = new RedactorProcessor([
+            'credentials' => [
+                'password' => new OffsetRule(3),
+            ],
+        ], false);
+
+        $user = new stdClass();
+        $user->credentials = [
+            'password' => 'supersecret',
+        ];
+
+        $record = $this->createRecord(['user' => $user], convertNested: false);
+
+        $processed = $processor($record);
+
+        $this->assertSame('sup********', $processed->context['user']->credentials['password']);
+    }
+
+    public function testOriginalObjectRemainsIntactAndProcessedCorrectly(): void
+    {
+        $processor = new RedactorProcessor([
+            'password' => new OffsetRule(2),
+        ], false);
+
+        $user = new stdClass();
+        $user->password = 'mysecret';
+        $user->username = 'bob';
+
+        $record = $this->createRecord(['user' => $user], convertNested: false);
+        $processed = $processor($record);
+
+        $this->assertSame('mysecret', $user->password);
+        $this->assertSame('bob', $user->username);
+
+        $processedUser = $processed->context['user'];
+        $this->assertSame('my******', $processedUser->password);
+        $this->assertSame('bob', $processedUser->username);
+    }
+
+    public function testObjectRuleAppliesToObjectProperties(): void
+    {
+        $processor = new RedactorProcessor([
+            'user' => new OffsetRule(3),
+            'password' => new OffsetRule(2),
+        ], true);
+
+        $user = new stdClass();
+        $user->username = 'alice';
+        $user->password = 'supersecret';
+
+        $record = $this->createRecord(['user' => $user], convertNested: false);
+        $processed = $processor($record);
+
+        $this->assertInstanceOf(stdClass::class, $processed->context['user']);
+        $this->assertSame('alice', $processed->context['user']->username);
+        $this->assertSame('su*********', $processed->context['user']->password);
     }
 }
