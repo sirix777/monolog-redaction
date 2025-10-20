@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.3.1] - 20/10/2025
+
+### Changed
+- RedactorProcessor: Constructor now initializes default rules first and validates custom rules iteratively, preserving keys and ensuring proper validation per rule.
+- RedactorProcessor: Objects are cloned only when ObjectViewModeEnum::Copy is set; other modes avoid cloning to reduce overhead.
+- Tests/CI: phpunit.xml.dist enables display_errors=1 and error_reporting=1 to improve debugging test failures.
+
 
 ## [1.3.0] - 17/10/2025
 

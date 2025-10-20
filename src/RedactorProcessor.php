@@ -16,7 +16,6 @@ use SplObjectStorage;
 use stdClass;
 use UnitEnum;
 
-use function array_map;
 use function array_merge;
 use function get_debug_type;
 use function get_object_vars;
@@ -58,10 +57,10 @@ final class RedactorProcessor implements ProcessorInterface
      */
     public function __construct(array $customRules = [], bool $useDefaultRules = true)
     {
-        $this->rules = array_map(
-            fn ($rule) => $this->validateRule($rule),
-            array_merge($useDefaultRules ? $this->loadDefaultRules() : [], $customRules)
-        );
+        $this->rules = $useDefaultRules ? $this->loadDefaultRules() : [];
+        foreach ($customRules as $k => $rule) {
+            $this->rules[$k] = $this->validateRule($rule);
+        }
     }
 
     public function __invoke(LogRecord $record): LogRecord
@@ -434,7 +433,7 @@ final class RedactorProcessor implements ProcessorInterface
     private function maskObject(string $key, object $value, array $rules): mixed
     {
         $subRules = $rules[$key] ?? [];
-        $obj = $value;
+        $obj = ObjectViewModeEnum::Copy === $this->objectViewMode ? clone $value : $value;
 
         if ($this->seenObjects?->contains($value)) {
             $this->onLimit('cycle', ['class' => get_debug_type($value)]);
