@@ -55,7 +55,7 @@ final class RedactorProcessorObjectViewModeTest extends TestCase
         $this->assertSame('hidden', $obj->getSecret());
     }
 
-    public function testSkipModeLeavesObjectsUntouched(): void
+    public function testSkipModeMasksObjectsAsString(): void
     {
         $user = new stdClass();
         $user->username = 'bob';
@@ -72,9 +72,7 @@ final class RedactorProcessorObjectViewModeTest extends TestCase
         $record = $this->createRecord(['user' => $user], convertNested: false);
         $processed = $processor($record);
 
-        $this->assertInstanceOf(stdClass::class, $processed->context['user']);
-        $this->assertSame($user, $processed->context['user'], 'Should be the same instance when skipping');
-        $this->assertSame('verysecret', $processed->context['user']->password);
-        $this->assertSame('bob', $processed->context['user']->username);
+        $this->assertIsString($processed->context['user']);
+        $this->assertSame('[object stdClass]', $processed->context['user']);
     }
 }

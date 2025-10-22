@@ -5,6 +5,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.0.0] - 22/10/2025
+
+### Removed
+- Breaking: Removed `setProcessObjects(bool $processObjects)` option. Use `setObjectViewMode(ObjectViewModeEnum::Skip)` to skip objects entirely, or `ObjectViewModeEnum::PublicArray` to process only public properties.
+
+### Migration
+- If you previously called `$processor->setProcessObjects(false)`, replace it with `$processor->setObjectViewMode(ObjectViewModeEnum::Skip)`.
+- If you disabled processing for performance reasons but still want limited processing, consider `$processor->setObjectViewMode(ObjectViewModeEnum::PublicArray)`.
+
 ## [1.3.1] - 20/10/2025
 
 ### Changed

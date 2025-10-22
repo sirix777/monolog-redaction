@@ -215,47 +215,6 @@ final class RedactorProcessorTest extends TestCase
         $this->assertSame('ab******', $processed->context['obj']->token);
     }
 
-    public function testDisablesObjectProcessing(): void
-    {
-        $user = new stdClass();
-        $user->username = 'dave';
-        $user->password = 'supersecret';
-
-        $processor = new RedactorProcessor([
-            'password' => new OffsetRule(3),
-        ], false);
-
-        $processor->setProcessObjects(false);
-
-        $record = $this->createRecord(['user' => $user], convertNested: false);
-        $processed = $processor($record);
-
-        $this->assertInstanceOf(stdClass::class, $processed->context['user']);
-        $this->assertSame('supersecret', $processed->context['user']->password);
-        $this->assertSame('dave', $processed->context['user']->username);
-    }
-
-    public function testEnablesObjectProcessing(): void
-    {
-        $user = new stdClass();
-        $user->username = 'eve';
-        $user->password = 'topsecret';
-
-        $processor = new RedactorProcessor([
-            'password' => new OffsetRule(4),
-        ], false);
-
-        $processor->setProcessObjects(true);
-
-        $record = $this->createRecord(['user' => $user], convertNested: false);
-        $processed = $processor($record);
-
-        $this->assertInstanceOf(stdClass::class, $processed->context['user']);
-        $this->assertSame('tops*****', $processed->context['user']->password);
-        $this->assertSame('eve', $processed->context['user']->username);
-        $this->assertSame('topsecret', $user->password);
-    }
-
     public function testDeeplyNestedObjectCloningAndImmutability(): void
     {
         $profile = new class {

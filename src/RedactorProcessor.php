@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Sirix\Monolog\Redaction;
 
-use Closure;
 use InvalidArgumentException;
 use Monolog\LogRecord;
 use Monolog\Processor\ProcessorInterface;
@@ -23,6 +22,7 @@ use function is_array;
 use function is_callable;
 use function is_object;
 use function is_scalar;
+use function sprintf;
 
 final class RedactorProcessor implements ProcessorInterface
 {
@@ -33,7 +33,6 @@ final class RedactorProcessor implements ProcessorInterface
     private string $replacement = '*';
     private string $template = '%s';
     private ?int $lengthLimit = null;
-    private bool $processObjects = true;
     private ObjectViewModeEnum $objectViewMode = ObjectViewModeEnum::Copy;
     private ?int $maxDepth = null;
     private ?int $maxItemsPerContainer = null;
@@ -67,7 +66,9 @@ final class RedactorProcessor implements ProcessorInterface
     {
         $this->currentDepth = 0;
         $this->nodesVisited = 0;
-        $this->seenObjects = new SplObjectStorage();
+        $this->seenObjects = ObjectViewModeEnum::Skip === $this->objectViewMode
+            ? null
+            : new SplObjectStorage();
 
         $context = $record->context;
         $this->processValue($context, $this->rules);
@@ -103,16 +104,6 @@ final class RedactorProcessor implements ProcessorInterface
     public function getLengthLimit(): ?int
     {
         return $this->lengthLimit;
-    }
-
-    public function setProcessObjects(bool $processObjects): void
-    {
-        $this->processObjects = $processObjects;
-    }
-
-    public function isProcessObjects(): bool
-    {
-        return $this->processObjects;
     }
 
     public function setObjectViewMode(ObjectViewModeEnum $mode): void
@@ -206,18 +197,7 @@ final class RedactorProcessor implements ProcessorInterface
 
     private function shouldProcessObject(object $object): bool
     {
-        if (! $this->processObjects) {
-            return false;
-        }
-
-        $skipTypes = [UnitEnum::class, Closure::class];
-        foreach ($skipTypes as $type) {
-            if ($object instanceof $type) {
-                return false;
-            }
-        }
-
-        return true;
+        return ! $object instanceof UnitEnum;
     }
 
     /**
@@ -254,6 +234,8 @@ final class RedactorProcessor implements ProcessorInterface
     private function processObject(mixed &$value, array $rules): void
     {
         if (ObjectViewModeEnum::Skip === $this->objectViewMode) {
+            $value = sprintf('[object %s]', get_debug_type($value));
+
             return;
         }
 

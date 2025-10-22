@@ -113,11 +113,10 @@ final class MyRule implements RedactionRuleInterface
 - setReplacement(string $char): character used to construct masks (default `*`).
 - setTemplate(string $template): a `sprintf` template applied to the mask string (default `'%s'`). For example, `'[%s]'` wraps mask in brackets.
 - setLengthLimit(?int $limit): if set, truncates the resulting masked value to at most this length.
-- setProcessObjects(bool $processObjects): controls whether objects should be processed (default `true`). When set to `false`, objects are left untouched during redaction. Disabling can yield maximum performance on heavy ORM entities/proxies where reflection or deep traversal is expensive.
 - setObjectViewMode(ObjectViewModeEnum $mode): controls how objects are traversed/represented (default `Copy`).
   - Copy: convert objects to stdClass and include non‑public properties when needed (backward compatible default).
   - PublicArray: build an array from public properties only using `get_object_vars`, then process that array (fast path; no reflection).
-  - Skip: do not unwrap objects; leave them as is (compatible with `setProcessObjects(false)`).
+  - Skip: do not traverse objects; replace them with a short placeholder string like [object ClassName].
 - setMaxDepth(?int $depth): limit recursion depth while traversing arrays/objects (default `null` = no limit).
 - setMaxItemsPerContainer(?int $count): process at most this many elements per array container (default `null` = no limit). Remaining items stay untouched.
 - setMaxTotalNodes(?int $count): global cap on visited/processed nodes across the whole structure (default `null` = no limit).
@@ -163,6 +162,11 @@ This repository includes a PHPUnit test suite and tooling configs.
 - Static analysis: `composer phpstan`
 - Code style check: `composer cs-check`
 - Auto‑fix style: `composer cs-fix`
+
+## Breaking changes in 2.0.0
+
+- Removed setProcessObjects(bool $processObjects). Use setObjectViewMode(ObjectViewModeEnum::Skip) to avoid processing objects entirely, or ObjectViewModeEnum::PublicArray to process only public properties without reflection.
+- If you previously disabled object processing for performance, switching to PublicArray often provides a good balance between safety and speed.
 
 ## Versioning
 
