@@ -1,6 +1,7 @@
 {
   "name": "sirix/monolog-redaction",
-  "description": "Monolog processor for redacting sensitive information in logs",
+  "description": "Deprecated: functionality moved to sirix/redaction",
+  "abandoned": "sirix/redaction",
   "license": "MIT",
   "type": "library",
   "keywords": [

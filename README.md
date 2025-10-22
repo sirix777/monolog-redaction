@@ -1,5 +1,12 @@
 # Monolog Redaction Processor
 
+# ⚠️ Deprecated: sirix/monolog-redaction
+
+This package is **no longer maintained**.
+
+All functionality has been moved to **[`sirix/redaction`](https://github.com/sirix777/redaction)**.
+
+
 Monolog processor for redacting sensitive information in logs.
 
 This library provides a Processor for Monolog 3 that traverses your log context (arrays, objects, iterables) and masks sensitive values using pluggable rules. It ships with a sensible set of default rules (card data, emails, names, IPs, etc.) and lets you add your own or override per key.
